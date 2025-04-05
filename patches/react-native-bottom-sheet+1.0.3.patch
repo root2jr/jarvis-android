@@ -1,15 +1,36 @@
 diff --git a/node_modules/react-native-bottom-sheet/android/build.gradle b/node_modules/react-native-bottom-sheet/android/build.gradle
-index 73ccb40..3bf3853 100644
+index 73ccb40..1b17569 100644
 --- a/node_modules/react-native-bottom-sheet/android/build.gradle
 +++ b/node_modules/react-native-bottom-sheet/android/build.gradle
-@@ -35,7 +35,7 @@ android {
+@@ -11,6 +11,7 @@ buildscript {
+ allprojects {
+     repositories {
+         jcenter()
++        maven { url "https://jitpack.io" } // for older AARs if needed
+     }
+ }
+ 
+@@ -26,16 +27,22 @@ android {
+         versionCode 1
+         versionName "1.0"
+     }
++
+     buildTypes {
+         release {
+             minifyEnabled false
+             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+         }
+     }
++
++    compileOptions {
++        sourceCompatibility JavaVersion.VERSION_1_7
++        targetCompatibility JavaVersion.VERSION_1_7
++    }
  }
  
  dependencies {
--    compile 'com.android.support:appcompat-v7:23.0.1'
+     compile 'com.android.support:appcompat-v7:23.0.1'
 -    compile 'com.facebook.react:react-native:0.17.+'
--    compile 'com.cocosw:bottomsheet:1.+@aar'
-+    implementation 'com.android.support:appcompat-v7:23.0.1'
-+    implementation 'com.facebook.react:react-native:0.17.+'
-+    implementation 'com.cocosw:bottomsheet:1.+@aar'
++    compile 'com.facebook.react:react-native:0.17.+' // don't upgrade this if you're using RN 0.17
+     compile 'com.cocosw:bottomsheet:1.+@aar'
  }
