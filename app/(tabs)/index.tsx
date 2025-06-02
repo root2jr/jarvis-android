@@ -1,75 +1,121 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { Image, StyleSheet, View, Pressable, Text } from 'react-native';
+import { useFonts, Orbitron_400Regular } from '@expo-google-fonts/orbitron';
+import { useCallback, useState } from 'react';
+import * as SplashScreen from 'expo-splash-screen';
+import { Video } from 'expo-av';
+import { useRouter } from 'expo-router';
 
 export default function HomeScreen() {
+  const [isHovered, setIsHovered] = useState(false);
+  const [fontsLoaded] = useFonts({ Orbitron_400Regular });
+  const router = useRouter();
+
+
+  const onLayoutRootView = useCallback(async () => {
+    if (fontsLoaded) {
+      await SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <View style={styles.container}>
+      {/* Background Video */}
+      <Video
+        source={require('../../assets/videos/bg.mp4')}
+        style={styles.bgVideo}
+        resizeMode="cover"
+        isLooping
+        shouldPlay
+        isMuted
+        onLayout={onLayoutRootView}
+      />
+
+      {/* Dark Filter for Transparency Effect */}
+      <View style={styles.filter} />
+
+      {/* Centered Text */}
+      <Text style={styles.text}>JARVIS</Text>
+
+      {/* Centered GIF Video */}
+      <Image
+        source={require('../../assets/videos/4872-181170832.gif')}
+        style={styles.middlevideo}
+      />
+
+      {/* Pressable Button with Hover Effect */}
+      <Pressable
+        onPressIn={() => setIsHovered(true)}
+        onPressOut={() => setIsHovered(false)}
+        style={[styles.button, isHovered && styles.buttonHover]}
+        onPress={() =>  router.push('../login')} onLongPress={() =>console.log('Button Clicked!')}  
+      >
+        <Text style={[styles.buttontext, isHovered && styles.buttonTextHover]}>LOGIN</Text>
+      </Pressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
+  container: {
+    flex: 1,
+    backgroundColor: 'black',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
+  bgVideo: {
     position: 'absolute',
+    width: '100%',
+    height: '100%',
+    zIndex: 0,
+  },
+  filter: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.74)',
+    zIndex: 1,
+  },
+  text: {
+    color: 'white',
+    fontFamily: 'Orbitron_400Regular',
+    fontSize: 40,
+    textAlign: 'center',
+    zIndex: 2,
+    position: 'absolute',
+    top: 100,
+  },
+  middlevideo: {
+    width: '150%',
+    height: '150%',
+    position: 'absolute',
+    zIndex: 2,
+    resizeMode: 'contain',
+    top: '-23%',
+  },
+  button: {
+    position: 'absolute',
+    bottom: 50,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 50,
+    zIndex: 2,
+    borderWidth: 1,
+    borderColor: 'white',
+  },
+  buttonHover: {
+    backgroundColor: 'skyblue',
+    borderWidth: 0,
+  },
+  buttontext: {
+    color: 'white',
+    fontSize: 15,
+    fontFamily: 'Orbitron_400Regular',
+    textAlign: 'center',
+  },
+  buttonTextHover: {
+    color: 'black',
   },
 });

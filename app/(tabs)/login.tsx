@@ -1,110 +1,233 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
+import { useRouter } from 'expo-router';
+import { StyleSheet } from 'react-native';
+import { useFonts } from 'expo-font';
+import { Orbitron_400Regular } from '@expo-google-fonts/orbitron';
+import * as SplashScreen from 'expo-splash-screen';
+import { useCallback, useEffect, useRef } from 'react';
+import { useState } from 'react';
+import { Video } from 'expo-av';
+import { TextInput } from 'react-native';
+import axios from 'axios';
+import { Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { Collapsible } from '@/components/Collapsible';
-import { ExternalLink } from '@/components/ExternalLink';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
 
-export default function TabTwoScreen() {
+
+
+
+export default function LoginScreen() {
+
+  useEffect( () => {
+    async function checkJwt() {
+    console.log( await AsyncStorage.getItem('jwt'));
+   let pass = await AsyncStorage.getItem('jwt');
+    if (pass) {
+         router.push('../aipage');
+    }
+  }
+
+    checkJwt();
+  }, [])
+
+  const router = useRouter();
+  const [fontsLoaded] = useFonts({ Orbitron_400Regular });
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isHovered, setIsHovered] = useState(false);
+  const [isHoveredlog, setIsHoveredlog] = useState(false);
+  const [jwt, setJwt] = useState('');
+  const infoRef = useRef(false);
+
+
+  async function savename(jwt: string, email: string) {
+   await AsyncStorage.setItem('username', email);
+   await AsyncStorage.setItem('jwt', jwt);
+  }
+ 
+
+
+  const checkLogin = async () => {      
+    try {
+      if(email == ""  || password == ""){
+           Alert.alert("Enter a Valid Email or Password","Invalid Username or Password",[{text:"Okay"}])
+      }
+      const response = await login(email, password);
+      if (response.data.message === "Login accepted") {
+        console.log('Login successful!');
+        setJwt(response.data.token);
+        savename(response.data.token, email);
+        router.push('../aipage');
+      }
+      else if (response.data.message === "New user created") {
+        Alert.alert(
+          "New User Created",
+          "User",
+          [
+            { text: "Okay", onPress: () => console.log("Retry pressed") },
+          ]
+        );
+        setJwt(response.data.token);
+        savename(response.data.token, email);
+        router.push('../aipage');
+      }
+      else {
+        console.log('Login failed!');
+        infoRef.current = true;
+        Alert.alert(
+          "Login Failed",
+          "Invalid email or password",
+          [
+            { text: "Retry", onPress: () => console.log("Retry pressed") },
+            { text: "Cancel", style: "cancel" }
+          ]
+        );
+        setPassword('');
+      }
+    } catch (error) {
+      console.error('Error logging in:', error);
+    }
+  }
+  const login = async (usermail: string, password: string) => {
+    const response = await axios.post('https://jarvis-ai-8pr6.onrender.com/login', {
+      usermail: usermail,
+      password: password
+    });
+    console.log(response.data);
+    return response;
+  }
+
+
+
+
+  const onLayoutRootView = useCallback(async () => {
+    if (fontsLoaded) {
+      await SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Explore</ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image source={require('@/assets/images/react-logo.png')} style={{ alignSelf: 'center' }} />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Custom fonts">
-        <ThemedText>
-          Open <ThemedText type="defaultSemiBold">app/_layout.tsx</ThemedText> to see how to load{' '}
-          <ThemedText style={{ fontFamily: 'SpaceMono' }}>
-            custom fonts such as this one.
-          </ThemedText>
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/versions/latest/sdk/font">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful <ThemedText type="defaultSemiBold">react-native-reanimated</ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <View style={styles.viewstyle}>
+      <Video
+        source={require('../../assets/videos/bg.mp4')}
+        style={{ width: '100%', height: '100%' }}
+        resizeMode="cover"
+        isLooping
+        shouldPlay
+        isMuted
+        onLayout={onLayoutRootView} />
+      <View style={styles.inputs}>
+        <Text style={{ color: 'white', fontSize: 24, textAlign: 'center', top: '60', zIndex: 3, fontFamily: 'Orbitron_400Regular' }}>Login</Text>
+        <View style={styles.inputsbox}>
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor="gray"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            value={email}
+            onChangeText={setEmail}
+          />
+          <TextInput
+            style={styles.input2}
+            placeholder="Password"
+            placeholderTextColor="gray"
+            secureTextEntry={true}
+            autoCapitalize="none"
+            value={password}
+            onChangeText={setPassword}
+          />
+          <Pressable onPressIn={() => setIsHovered(true)} onPressOut={() => setIsHovered(false)}>
+            <Text style={[styles.fp, isHovered && styles.fphover]}>Forgot Password</Text></Pressable>
+          <Pressable onPressIn={() => setIsHoveredlog(true)} onPressOut={() => setIsHoveredlog(false)} onPress={checkLogin} onLongPress={() => console.log('Button Clicked!')}>
+            <Text style={[styles.button, isHoveredlog && styles.logbutton]}>Login</Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
+
+
+
   );
 }
-
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
+  viewstyle: {
+    flex: 1,
+    backgroundColor: 'black',
+    zIndex: 1,
+    fontFamily: 'Orbitron_400Regular'
+  },
+  inputs: {
+    width: '100%',
+    height: '100%',
+    zIndex: 2,
     position: 'absolute',
+    backgroundColor: 'rgba(0, 0, 0, 0.69)'
   },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
+  inputsbox: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+    alignItems: 'center',
+    zIndex: 5,
+    justifyContent: 'center',
+    marginTop: 50,
   },
+  input: {
+    zIndex: 35,
+    backgroundColor: 'white',
+    width: '80%',
+    borderRadius: 40,
+    padding: 10,
+    paddingLeft: 20,
+    paddingRight: 20,
+    fontFamily: 'Orbitron_400Regular',
+  },
+  input2: {
+    zIndex: 35,
+    backgroundColor: 'white',
+    width: '80%',
+    borderRadius: 40,
+    padding: 10,
+    paddingLeft: 20,
+    marginTop: 20,
+    paddingRight: 20,
+    fontFamily: 'Orbitron_400Regular',
+  },
+  fp: {
+    color: 'white',
+    fontFamily: 'Orbitron_400Regular',
+    marginTop: 20,
+  },
+  fphover: {
+    color: 'white',
+    fontFamily: 'Orbitron_400Regular',
+    marginTop: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'white',
+  },
+  button: {
+    color: 'white',
+    fontFamily: 'Orbitron_400Regular',
+    marginTop: 30,
+    borderColor: 'white',
+    borderWidth: 1,
+    padding: 20,
+    borderRadius: 30,
+  },
+  logbutton: {
+    color: 'black',
+    fontFamily: 'Orbitron_400Regular',
+    marginTop: 30,
+    borderColor: 'white',
+    borderWidth: 0,
+    padding: 20,
+    borderRadius: 30,
+    backgroundColor: 'skyblue',
+  },
+
 });
