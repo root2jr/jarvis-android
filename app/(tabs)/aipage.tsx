@@ -4,10 +4,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
 import { Video } from 'expo-av';
+import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+    Alert,
     Animated, Dimensions, FlatList,
     Image,
     Pressable,
@@ -36,6 +38,7 @@ const AiChat = () => {
     const [button1, setButton1] = useState(false);
     const slideAnim = useRef(new Animated.Value(-width * 5)).current;
     const [voicemode, setVoicemode] = useState(false);
+    const [delbutton,setDelbutton] = useState(false);
     const toggleOverlay = () => {
         Animated.timing(slideAnim, {
             toValue: visible ? -width : 0,
@@ -44,8 +47,20 @@ const AiChat = () => {
         }).start(() => setVisible(!visible));
     };
 
-   
 
+    useEffect(() => {
+        const requestPermissions = async () => {
+            const { status } = await Notifications.getPermissionsAsync();
+            if (status !== 'granted') {
+                const { status: newStatus } = await Notifications.requestPermissionsAsync();
+                if (newStatus !== 'granted') {
+                    Alert.alert("Permission required", "Please enable notifications.");
+                }
+            }
+        };
+
+        requestPermissions();
+    }, []);
 
     useFocusEffect(
         useCallback(() => {
@@ -130,29 +145,84 @@ const AiChat = () => {
         "remind",
         "alert",
     ];
-   
+    async function scheduleNotification(hour, minute, projectName) {
+        const now = new Date();
+        const triggerTime = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate(),
+            hour,
+            minute,
+            0
+        );
+
+        if (triggerTime <= now) {
+            triggerTime.setDate(triggerTime.getDate() + 1);
+        }
+
+        await Notifications.scheduleNotificationAsync({
+            content: {
+                title: "Reminder",
+                body: `Your ${projectName} duration is up!`,
+                sound: true,
+            },
+            trigger: {
+                type: 'date',
+                date: triggerTime,
+            },
+        });
+        console.log(projectName);
+        console.log(hour);
+        console.log(minute);
+
+        Alert.alert("Notification scheduled for", triggerTime.toString());
+    }
+
 
     function parseReminder(text) {
         let task = "";
-        let datetime = null;
-        if (text.toLowerCase().includes("tomorrow")) {
-            datetime = 24;
-        }
-        else if (text.toLowerCase().includes("day after tomorrow")) {
-            datetime = 48;
-        }
-        for (let index = 0; index < 10; index++) {
-            if (text.toLowerCase().includes(index)) {
-                datetime = index;
-                break;
-            }
+        let targetDate = new Date();
 
-        }
-        task = text.replace(/remind me to|set me a reminder to|alert me about|remind me that/, "").trim();
+        text = text.toLowerCase();
 
-        console.log({ task, datetime });
-        return { task, datetime };
+        // Check for day references
+        if (text.includes("day after tomorrow")) {
+            targetDate.setDate(targetDate.getDate() + 2);
+        } else if (text.includes("tomorrow")) {
+            targetDate.setDate(targetDate.getDate() + 1);
+        }
+
+        // Extract time like "at 5 PM" or "at 14:30"
+        const timeMatch = text.match(/at\s(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/);
+        if (timeMatch) {
+            let hour = parseInt(timeMatch[1]);
+            const minute = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+            const period = timeMatch[3];
+
+            if (period === 'pm' && hour < 12) hour += 12;
+            if (period === 'am' && hour === 12) hour = 0;
+
+            targetDate.setHours(hour);
+            targetDate.setMinutes(minute);
+            targetDate.setSeconds(0);
+        } else {
+            // Default fallback time
+            targetDate.setHours(9);
+            targetDate.setMinutes(0);
+            targetDate.setSeconds(0);
+        }
+
+        // Extract task
+        task = text.replace(/remind me to|set me a reminder to|alert me about|remind me that|at.*/i, "").trim();
+
+        return {
+            task,
+            hour: targetDate.getHours(),
+            minute: targetDate.getMinutes(),
+            date: targetDate,
+        };
     }
+
 
     const isReminderMessage = (message) => {
         return reminderKeywords.some(keyword =>
@@ -241,7 +311,7 @@ const AiChat = () => {
         else {
             if (isReminderMessage(inputText)) {
                 console.log("Reminder Detected");
-                const parsedmess = parseReminder(message);
+                const parsedmess = parseReminder(inputText);
                 const aiBotReply = await axios.post('https://jarvis-ai-8pr6.onrender.com/api/gemini', {
                     prompt: `you are sending the user a reminding message as JARVIS for this'${parsedmess.task}',make it in a single line`
                 }, {
@@ -251,6 +321,8 @@ const AiChat = () => {
 
                 });
                 const remmess = aiBotReply.data.response.replace(/<\/?p[^>]*>/gi, '');
+                console.log(parsedmess.minute, parsedmess.hour);
+                await scheduleNotification(parsedmess.hour, parsedmess.minute, remmess);
             }
             console.log('Works AI function');
             setMessages([...messages, { text: inputText, isUser: true }]);
@@ -306,7 +378,7 @@ const AiChat = () => {
             <View style={styles.bglayer}>
                 <Animated.View style={[styles.overlay, { transform: [{ translateX: slideAnim }] }]}>
                     <TouchableOpacity style={{ position: 'absolute', top: 30, left: 30 }} onPress={toggleOverlay}><FontAwesome name='close' color={"skyblue"} size={30} /></TouchableOpacity>
-                    <Pressable style={{ padding: 20, borderWidth: 1, borderColor: "red", borderRadius: 20 }} onPress={reset}><Text style={{ color: "red", fontSize: 20, fontFamily: 'Orbitron_400Regular' }}>DELETE CHAT</Text></Pressable>
+                    <Pressable onPressIn={() => {setDelbutton(true)}} onPressOut={() => {setDelbutton(false)}} style={delbutton?{ padding: 20, borderWidth: 1, borderColor: "red", borderRadius: 20,backgroundColor:"red"}:{ padding: 20, borderWidth: 1, borderColor: "red", borderRadius: 20,}} onPress={reset}><Text style={delbutton?{ color: "white", fontSize: 20, fontFamily: 'Orbitron_400Regular' }:{color:"red",fontSize:20,fontFamily:"Orbitron_400Regular"}}>DELETE CHAT</Text></Pressable>
                     <Pressable style={voicemode ? { padding: 20, borderWidth: 1, borderColor: "skyblue", backgroundColor: "skyblue", marginTop: 20, borderRadius: 20 } : { padding: 20, borderWidth: 1, borderColor: "skyblue", marginTop: 20, borderRadius: 20 }} onPress={() => { setVoicemode(prev => !prev); }}><Text style={voicemode ? { color: "white", fontSize: 20, fontFamily: 'Orbitron_400Regular' } : { color: "skyblue", fontSize: 20, fontFamily: 'Orbitron_400Regular' }}>VOICE MODE</Text></Pressable>
                     <Pressable style={button1 ? { padding: 20, borderWidth: 1, borderColor: "red", backgroundColor: "red", borderRadius: 20, marginTop: 20 } : { padding: 20, borderWidth: 1, borderColor: "red", borderRadius: 20, marginTop: 20 }} onPressIn={() => { setButton1(true) }} onPressOut={() => { setButton1(false) }} onPress={logout}><Text style={button1 ? { color: "white", fontSize: 20, fontFamily: 'Orbitron_400Regular' } : { color: "red", fontSize: 20, fontFamily: 'Orbitron_400Regular' }}>LOG OUT</Text></Pressable>
                 </Animated.View>

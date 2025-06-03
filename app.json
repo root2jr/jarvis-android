@@ -4,7 +4,7 @@
     "slug": "JARVIS",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/jarvis-icon.png",
     "scheme": "jarvis",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -13,8 +13,9 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/jarvis-icon.png",
+        "backgroundColor": "skyblue",
+        "borderRadius": 40
       },
       "edgeToEdgeEnabled": true,
       "package": "com.jayaram1810.JARVIS"
@@ -29,10 +30,11 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/jarvis-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "skyblue",
+          "borderRadius": 40
         }
       ]
     ],
