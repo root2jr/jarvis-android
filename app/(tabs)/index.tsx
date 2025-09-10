@@ -1,11 +1,23 @@
-import { Image, StyleSheet, View, Pressable, Text } from 'react-native';
-import { useFonts, Orbitron_400Regular } from '@expo-google-fonts/orbitron';
-import { useCallback, useState } from 'react';
-import * as SplashScreen from 'expo-splash-screen';
+import { Orbitron_400Regular, useFonts } from '@expo-google-fonts/orbitron';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Video } from 'expo-av';
 import { useRouter } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { useCallback, useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 export default function HomeScreen() {
+
+
+  useEffect(() => {
+    const jwtcheck = async () => {
+       const jwt = await AsyncStorage.getItem('jwt');
+        if(jwt){
+          router.push('/aipage');
+        } 
+    }
+       jwtcheck();
+  },[])
   const [isHovered, setIsHovered] = useState(false);
   const [fontsLoaded] = useFonts({ Orbitron_400Regular });
   const router = useRouter();
@@ -23,7 +35,6 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Background Video */}
       <Video
         source={require('../../assets/videos/bg.mp4')}
         style={styles.bgVideo}
@@ -34,19 +45,11 @@ export default function HomeScreen() {
         onLayout={onLayoutRootView}
       />
 
-      {/* Dark Filter for Transparency Effect */}
       <View style={styles.filter} />
 
-      {/* Centered Text */}
       <Text style={styles.text}>JARVIS</Text>
 
-      {/* Centered GIF Video */}
-      <Image
-        source={require('../../assets/videos/4872-181170832.gif')}
-        style={styles.middlevideo}
-      />
-
-      {/* Pressable Button with Hover Effect */}
+      
       <Pressable
         onPressIn={() => setIsHovered(true)}
         onPressOut={() => setIsHovered(false)}

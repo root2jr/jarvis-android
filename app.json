@@ -1,24 +1,24 @@
 {
   "expo": {
-    "name": "JARVIS",
+    "name": "Jarvis",
     "slug": "JARVIS",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/jarvis-icon.png",
     "scheme": "jarvis",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/jarvis-icon.png",
-        "backgroundColor": "skyblue",
-        "borderRadius": 40
+        "foregroundImage": "./assets/images/jar.png",
+        "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.jayaram1810.JARVIS"
+      "package": "com.jayaram1810.JARVIS",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",
@@ -30,13 +30,13 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/jarvis-icon.png",
-          "imageWidth": 200,
+          "image": "./assets/images/jar.png",
+          "imageWidth": 300,
           "resizeMode": "contain",
-          "backgroundColor": "skyblue",
-          "borderRadius": 40
+          "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

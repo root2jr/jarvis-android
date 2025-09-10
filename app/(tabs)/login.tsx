@@ -1,31 +1,76 @@
-import { View, Text, Pressable } from 'react-native';
-import { useRouter } from 'expo-router';
-import { StyleSheet } from 'react-native';
-import { useFonts } from 'expo-font';
 import { Orbitron_400Regular } from '@expo-google-fonts/orbitron';
-import * as SplashScreen from 'expo-splash-screen';
-import { useCallback, useEffect, useRef } from 'react';
-import { useState } from 'react';
-import { Video } from 'expo-av';
-import { TextInput } from 'react-native';
-import axios from 'axios';
-import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-
+import axios from 'axios';
+import { Video } from 'expo-av';
+import { useFonts } from 'expo-font';
+import * as Notifications from 'expo-notifications';
+import { useRouter } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert, Linking, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 
 
 export default function LoginScreen() {
 
-  useEffect( () => {
-    async function checkJwt() {
-    console.log( await AsyncStorage.getItem('jwt'));
-   let pass = await AsyncStorage.getItem('jwt');
-    if (pass) {
-         router.push('../aipage');
+
+  async function getPushToken() {
+    try {
+      // Check if already stored
+      let token = await AsyncStorage.getItem("expoPushToken");
+      if (token) {
+        console.log("Using cached token:", token);
+        return token;
+      }
+
+      // Ask permission
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== 'granted') {
+        alert('Failed to get push token!');
+        return null;
+      }
+
+      // Get new token
+      token = (
+        await Notifications.getExpoPushTokenAsync({
+          projectId: "5a9db27b-87ee-4bfa-bd8f-ea806380a2f0",
+        })
+      ).data;
+      console.log("Generated new token:", token);
+
+      await AsyncStorage.setItem("expoPushToken", token);
+
+
+
+      if (Platform.OS === 'android') {
+        Notifications.setNotificationChannelAsync('default', {
+          name: 'default',
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#FF231F7C',
+        });
+      }
+
+      return token;
+    } catch (err) {
+      console.error("Error getting push token:", err);
+      return null;
     }
   }
+
+  useEffect(() => {
+    async function checkJwt() {
+      console.log(await AsyncStorage.getItem('jwt'));
+      let pass = await AsyncStorage.getItem('jwt');
+      if (pass) {
+        router.push('../aipage');
+      }
+    }
 
     checkJwt();
   }, [])
@@ -40,35 +85,37 @@ export default function LoginScreen() {
   const infoRef = useRef(false);
 
 
-  async function savename(jwt: string, email: string) {
-   await AsyncStorage.setItem('username', email);
-   await AsyncStorage.setItem('jwt', jwt);
+  async function savename(jawt: string, email: string) {
+    await AsyncStorage.setItem('username', email);
+    await AsyncStorage.setItem('jwt', jawt);
   }
- 
 
 
-  const checkLogin = async () => {      
+
+  const checkLogin = async () => {
     try {
-      if(email == ""  || password == ""){
-           Alert.alert("Enter a Valid Email or Password","Invalid Username or Password",[{text:"Okay"}])
+      const token = await getPushToken();
+      if (email == "" || password == "") {
+        Alert.alert("Enter a Valid Email or Password", "Invalid Username or Password", [{ text: "Okay" }])
       }
-      const response = await login(email, password);
+      const response = await login(email, password, token);
       if (response.data.message === "Login accepted") {
         console.log('Login successful!');
         setJwt(response.data.token);
-        savename(response.data.token, email);
+        await savename(response.data.token, email);
         router.push('../aipage');
       }
       else if (response.data.message === "New user created") {
         Alert.alert(
           "New User Created",
-          "User",
+          "Now, you may login with your credentials.",
           [
-            { text: "Okay", onPress: () => console.log("Retry pressed") },
+            { text: "Okay", onPress: () => console.log("Retry pressed") }
           ]
         );
+        console.log(response.data.token);
         setJwt(response.data.token);
-        savename(response.data.token, email);
+        await savename(response.data.token, email);
         router.push('../aipage');
       }
       else {
@@ -89,9 +136,12 @@ export default function LoginScreen() {
     }
   }
   const login = async (usermail: string, password: string) => {
+    const token = await getPushToken();
     const response = await axios.post('https://jarvis-ai-8pr6.onrender.com/login', {
       usermail: usermail,
-      password: password
+      password: password,
+      telegramToken: token,
+      android: true
     });
     console.log(response.data);
     return response;
@@ -121,7 +171,7 @@ export default function LoginScreen() {
         isMuted
         onLayout={onLayoutRootView} />
       <View style={styles.inputs}>
-        <Text style={{ color: 'white', fontSize: 24, textAlign: 'center', top: '60', zIndex: 3, fontFamily: 'Orbitron_400Regular' }}>Login</Text>
+        <Text style={{ color: 'white', fontSize: 24, textAlign: 'center', top: 60, zIndex: 3, fontFamily: 'Orbitron_400Regular' }}>Login</Text>
         <View style={styles.inputsbox}>
           <TextInput
             style={styles.input}
@@ -142,7 +192,7 @@ export default function LoginScreen() {
             onChangeText={setPassword}
           />
           <Pressable onPressIn={() => setIsHovered(true)} onPressOut={() => setIsHovered(false)}>
-            <Text style={[styles.fp, isHovered && styles.fphover]}>Forgot Password</Text></Pressable>
+            <Text style={[styles.fp, isHovered && styles.fphover]} onPress={() => { Alert.alert("Change Password", "Continue to our website to change your password", [{ text: "NO THANKS" }, { text: "Open Website", onPress: () => { Linking.openURL("https://j-a-r-v-i-s-ai.netlify.app") } }]) }}>Forgot Password</Text></Pressable>
           <Pressable onPressIn={() => setIsHoveredlog(true)} onPressOut={() => setIsHoveredlog(false)} onPress={checkLogin} onLongPress={() => console.log('Button Clicked!')}>
             <Text style={[styles.button, isHoveredlog && styles.logbutton]}>Login</Text>
           </Pressable>
